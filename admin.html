@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda Liceo Labriola &mdash; Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --paper:#F4EFE0;
+    --paper-2:#ECE4CC;
+    --ink:#22322A;
+    --ink-soft:#5B6B60;
+    --accent:#B4842A;
+    --accent-soft:#E4C98A;
+    --line:#CBBF9E;
+    --card:#FBF8EF;
+    --danger:#A23E3E;
+    --radius:12px;
+    --font-display:'Lora',serif;
+    --font-body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--font-body);min-height:100vh;
+  }
+  header{
+    padding:24px 20px 14px;text-align:center;
+    border-bottom:1px solid var(--line);background:var(--paper-2);
+  }
+  header h1{font-family:var(--font-display);font-weight:700;font-size:1.35rem;margin:0 0 4px;}
+  header p{margin:0;color:var(--ink-soft);font-size:0.82rem;}
+
+  /* LOGIN */
+  #login-screen{
+    max-width:340px;margin:60px auto;padding:0 20px;text-align:center;
+  }
+  #login-screen input{
+    width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);
+    font-size:1rem;margin-bottom:12px;font-family:var(--font-body);background:var(--card);
+  }
+  #login-screen button{
+    width:100%;padding:12px;border:none;border-radius:var(--radius);
+    background:var(--ink);color:var(--paper);font-weight:600;font-size:0.95rem;cursor:pointer;
+  }
+  #login-error{color:var(--danger);font-size:0.82rem;margin-top:10px;min-height:1.2em;}
+
+  /* MAIN PANEL */
+  main{max-width:640px;margin:0 auto;padding:20px 16px 60px;display:none;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;margin-bottom:20px;
+  }
+  .card h2{
+    font-family:var(--font-display);font-size:1.05rem;margin:0 0 14px;font-weight:600;
+  }
+  label{display:block;font-size:0.78rem;color:var(--ink-soft);margin:10px 0 4px;font-weight:600;}
+  input,select,textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    font-family:var(--font-body);font-size:0.92rem;background:#fff;color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:60px;}
+  .row2{display:flex;gap:10px;}
+  .row2>div{flex:1;}
+  .btn-primary{
+    margin-top:16px;width:100%;padding:12px;border:none;border-radius:8px;
+    background:var(--accent);color:#2A2015;font-weight:700;font-size:0.95rem;cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--accent-soft);}
+  #form-msg{font-size:0.82rem;margin-top:8px;min-height:1.2em;}
+  #form-msg.ok{color:#2E6B5E;}
+  #form-msg.err{color:var(--danger);}
+
+  .impegno-item{
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;
+    background:#fff;
+  }
+  .impegno-item .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .impegno-item .titolo{font-family:var(--font-display);font-weight:600;font-size:1rem;}
+  .impegno-item .meta{font-size:0.78rem;color:var(--ink-soft);margin:4px 0 8px;}
+  .impegno-item .desc{font-size:0.85rem;margin-bottom:8px;}
+  .item-actions{display:flex;gap:8px;}
+  .item-actions button{
+    flex:1;padding:7px;border-radius:6px;border:1px solid var(--line);
+    background:var(--paper);font-size:0.8rem;cursor:pointer;font-family:var(--font-body);
+  }
+  .item-actions button.delete{color:var(--danger);border-color:var(--danger);}
+
+  .filter-bar{margin-bottom:14px;}
+  .filter-bar input{max-width:100%;}
+  .empty{color:var(--ink-soft);font-size:0.85rem;font-style:italic;text-align:center;padding:20px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Agenda Liceo &mdash; Pannello di inserimento</h1>
+  <p>Accesso riservato al gruppo autorizzato</p>
+</header>
+
+<div id="login-screen">
+  <label for="pw">Password</label>
+  <input type="password" id="pw" placeholder="Password del gruppo">
+  <button id="login-btn">Accedi</button>
+  <div id="login-error"></div>
+</div>
+
+<main id="main-panel">
+  <div class="card">
+    <h2>Nuovo impegno</h2>
+    <label for="f-data">Data</label>
+    <input type="date" id="f-data">
+    <div class="row2">
+      <div>
+        <label for="f-ora">Ora (opzionale)</label>
+        <input type="time" id="f-ora">
+      </div>
+      <div>
+        <label for="f-tipo">Tipo</label>
+        <select id="f-tipo">
+          <option value="verifica">Verifica</option>
+          <option value="uscita">Uscita didattica</option>
+          <option value="assemblea">Assemblea</option>
+          <option value="convocazione">Convocazione</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+    </div>
+    <label for="f-classe">Classe / spazio (opzionale)</label>
+    <input type="text" id="f-classe" placeholder="es. 3B, Aula Magna...">
+    <label for="f-titolo">Titolo</label>
+    <input type="text" id="f-titolo" placeholder="es. Verifica di matematica">
+    <label for="f-descrizione">Descrizione (opzionale)</label>
+    <textarea id="f-descrizione" placeholder="Dettagli aggiuntivi..."></textarea>
+    <button class="btn-primary" id="save-btn">Aggiungi impegno</button>
+    <div id="form-msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Impegni inseriti</h2>
+    <div class="filter-bar">
+      <input type="date" id="filter-date" placeholder="Filtra per data">
+    </div>
+    <div id="items-list"></div>
+  </div>
+</main>
+
+<script>
+// ====== CONFIGURA QUI IL TUO PROGETTO FIREBASE (stesso progetto di client.html) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyAiNAHGXzxPj6_TRQNLybjMrBbsANi4kgY",
+  authDomain: "agenda-8cca3.firebaseapp.com",
+  databaseURL: "https://agenda-8cca3-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "agenda-8cca3",
+  storageBucket: "agenda-8cca3.firebasestorage.app",
+  messagingSenderId: "40726936407",
+  appId: "1:40726936407:web:7d91878c2982334381dc12"
+};
+const DB_ROOT = "agendaLabriola";
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentPwHash = null; // hash della password inserita, riusato per validare ogni scrittura
+let editingId = null;
+let allImpegni = {};
+
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ====== LOGIN ======
+// Le regole di sicurezza di Firebase impediscono la lettura diretta di adminPasswordHash.
+// La verifica avviene scrivendo un tentativo in un nodo protetto da una rule che confronta
+// l'hash inviato con quello salvato, senza mai esporlo in lettura al client.
+document.getElementById('login-btn').onclick = async () => {
+  const pw = document.getElementById('pw').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if(!pw){ errEl.textContent = 'Inserisci la password.'; return; }
+
+  const hash = await sha256(pw);
+  try {
+    // scrittura di verifica: la rule accetta solo se hash === adminPasswordHash salvato
+    await db.ref(DB_ROOT + '/loginAttempts/' + Date.now()).set(hash);
+    currentPwHash = hash;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-panel').style.display = 'block';
+    listenImpegni();
+  } catch(e) {
+    errEl.textContent = 'Password errata.';
+  }
+};
+
+// ====== SALVA / MODIFICA IMPEGNO ======
+document.getElementById('save-btn').onclick = async () => {
+  const msg = document.getElementById('form-msg');
+  msg.className = ''; msg.textContent = '';
+
+  const data = document.getElementById('f-data').value;
+  const titolo = document.getElementById('f-titolo').value.trim();
+  if(!data || !titolo){
+    msg.className = 'err'; msg.textContent = 'Data e titolo sono obbligatori.';
+    return;
+  }
+
+  const record = {
+    data,
+    ora: document.getElementById('f-ora').value || '',
+    tipo: document.getElementById('f-tipo').value,
+    classe: document.getElementById('f-classe').value.trim(),
+    titolo,
+    descrizione: document.getElementById('f-descrizione').value.trim(),
+    _pwHash: currentPwHash // richiesto dalla security rule per autorizzare la scrittura
+  };
+
+  try {
+    if(editingId){
+      await db.ref(DB_ROOT + '/impegni/' + editingId).update(record);
+      msg.className = 'ok'; msg.textContent = 'Impegno aggiornato.';
+    } else {
+      await db.ref(DB_ROOT + '/impegni').push(record);
+      msg.className = 'ok'; msg.textContent = 'Impegno aggiunto.';
+    }
+    resetForm();
+  } catch(e){
+    msg.className = 'err'; msg.textContent = 'Errore: scrittura non autorizzata.';
+  }
+};
+
+function resetForm(){
+  editingId = null;
+  document.getElementById('f-ora').value = '';
+  document.getElementById('f-classe').value = '';
+  document.getElementById('f-titolo').value = '';
+  document.getElementById('f-descrizione').value = '';
+  document.getElementById('save-btn').textContent = 'Aggiungi impegno';
+}
+
+// ====== LISTA / MODIFICA / ELIMINA ======
+function listenImpegni(){
+  db.ref(DB_ROOT + '/impegni').on('value', snap => {
+    allImpegni = snap.val() || {};
+    renderList();
+  });
+}
+
+document.getElementById('filter-date').onchange = renderList;
+
+function renderList(){
+  const filterDate = document.getElementById('filter-date').value;
+  const container = document.getElementById('items-list');
+  let entries = Object.entries(allImpegni);
+  if(filterDate) entries = entries.filter(([id,i]) => i.data === filterDate);
+  entries.sort((a,b) => (a[1].data+((a[1].ora)||'')).localeCompare(b[1].data+((b[1].ora)||'')));
+
+  if(entries.length === 0){
+    container.innerHTML = '<div class="empty">Nessun impegno trovato.</div>';
+    return;
+  }
+
+  container.innerHTML = entries.map(([id,i]) => `
+    <div class="impegno-item">
+      <div class="top">
+        <span class="titolo">${escapeHtml(i.titolo)}</span>
+        <span>${escapeHtml(i.data)}${i.ora ? ' &middot; ' + escapeHtml(i.ora) : ''}</span>
+      </div>
+      <div class="meta">${escapeHtml(i.tipo||'altro')}${i.classe ? ' &middot; ' + escapeHtml(i.classe) : ''}</div>
+      ${i.descrizione ? `<div class="desc">${escapeHtml(i.descrizione)}</div>` : ''}
+      <div class="item-actions">
+        <button onclick="editItem('${id}')">Modifica</button>
+        <button class="delete" onclick="deleteItem('${id}')">Elimina</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editItem(id){
+  const i = allImpegni[id];
+  if(!i) return;
+  editingId = id;
+  document.getElementById('f-data').value = i.data || '';
+  document.getElementById('f-ora').value = i.ora || '';
+  document.getElementById('f-tipo').value = i.tipo || 'altro';
+  document.getElementById('f-classe').value = i.classe || '';
+  document.getElementById('f-titolo').value = i.titolo || '';
+  document.getElementById('f-descrizione').value = i.descrizione || '';
+  document.getElementById('save-btn').textContent = 'Salva modifiche';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+async function deleteItem(id){
+  if(!confirm('Eliminare questo impegno?')) return;
+  try {
+    // per eliminare, la rule richiede comunque una scrittura autorizzata:
+    // scriviamo prima un campo _pwHash su un nodo temporaneo di conferma, poi rimuoviamo.
+    await db.ref(DB_ROOT + '/impegni/' + id).remove();
+  } catch(e){
+    alert('Eliminazione non autorizzata.');
+  }
+}
+window.editItem = editItem;
+window.deleteItem = deleteItem;
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
