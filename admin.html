@@ -93,12 +93,20 @@
     font-size:0.76rem;padding:3px 10px;border-radius:999px;
   }
   .impegno-item .desc{font-size:0.85rem;margin-bottom:8px;}
+  .impegno-item .quando{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .ora-pill{
+    display:inline-block;background:var(--ink);color:var(--paper);
+    font-weight:700;font-size:0.8rem;font-variant-numeric:tabular-nums;
+    padding:2px 9px;border-radius:7px;
+  }
+  .referente{font-weight:600;color:var(--ink);}
   .item-actions{display:flex;gap:8px;}
   .item-actions button{
     flex:1;padding:7px;border-radius:6px;border:1px solid var(--line);
     background:var(--paper);font-size:0.8rem;cursor:pointer;font-family:var(--font-body);
   }
   .item-actions button.delete{color:var(--danger);border-color:var(--danger);}
+  .item-actions button.duplicate{color:var(--accent);border-color:var(--accent);font-weight:600;}
 
   .filter-bar{margin-bottom:14px;}
   .filter-bar input{max-width:100%;}
@@ -153,6 +161,8 @@
     </select>
     <label for="f-classe">Classe / spazio (opzionale)</label>
     <input type="text" id="f-classe" placeholder="es. 3B, Aula Magna...">
+    <label for="f-referente">Referente (opzionale)</label>
+    <input type="text" id="f-referente" placeholder="es. Prof.ssa Rossi">
     <label for="f-titolo">Titolo</label>
     <input type="text" id="f-titolo" placeholder="es. Verifica di matematica">
     <label for="f-descrizione">Descrizione (opzionale)</label>
@@ -238,6 +248,7 @@ document.getElementById('save-btn').onclick = async () => {
     oraFine: document.getElementById('f-ora-fine').value || '',
     tipo: document.getElementById('f-tipo').value,
     classe: document.getElementById('f-classe').value.trim(),
+    referente: document.getElementById('f-referente').value.trim(),
     titolo,
     descrizione: document.getElementById('f-descrizione').value.trim(),
     _pwHash: currentPwHash // richiesto dalla security rule per autorizzare la scrittura
@@ -262,6 +273,7 @@ function resetForm(){
   document.getElementById('f-ora').value = '';
   document.getElementById('f-ora-fine').value = '';
   document.getElementById('f-classe').value = '';
+  document.getElementById('f-referente').value = '';
   document.getElementById('f-titolo').value = '';
   document.getElementById('f-descrizione').value = '';
   document.getElementById('save-btn').textContent = 'Aggiungi impegno';
@@ -290,20 +302,24 @@ function renderList(){
   }
 
   container.innerHTML = entries.map(([id,i]) => {
-    const orario = i.ora ? (i.oraFine ? `${i.ora}&ndash;${i.oraFine}` : i.ora) : '';
+    const orario = i.ora
+      ? `<span class="ora-pill">${escapeHtml(i.ora)}${i.oraFine ? '&ndash;' + escapeHtml(i.oraFine) : ''}</span>`
+      : '';
     return `
     <div class="impegno-item">
       <div class="top">
         <span class="titolo">${escapeHtml(i.titolo)}</span>
-        <span>${escapeHtml(i.data)}${orario ? ' &middot; ' + orario : ''}</span>
+        <span class="quando">${escapeHtml(i.data)}${orario}</span>
       </div>
       <div class="meta">
         <span>${TIPO_LABEL[i.tipo] || 'Altro'}</span>
         ${i.classe ? `<span class="luogo-badge">&#128205; ${escapeHtml(i.classe)}</span>` : ''}
+        ${i.referente ? `<span class="referente">&#128100; ${escapeHtml(i.referente)}</span>` : ''}
       </div>
       ${i.descrizione ? `<div class="desc">${escapeHtml(i.descrizione)}</div>` : ''}
       <div class="item-actions">
         <button onclick="editItem('${id}')">Modifica</button>
+        <button class="duplicate" onclick="duplicateItem('${id}')">Duplica</button>
         <button class="delete" onclick="deleteItem('${id}')">Elimina</button>
       </div>
     </div>
@@ -319,10 +335,34 @@ function editItem(id){
   document.getElementById('f-ora-fine').value = i.oraFine || '';
   document.getElementById('f-tipo').value = i.tipo || 'altro';
   document.getElementById('f-classe').value = i.classe || '';
+  document.getElementById('f-referente').value = i.referente || '';
   document.getElementById('f-titolo').value = i.titolo || '';
   document.getElementById('f-descrizione').value = i.descrizione || '';
   document.getElementById('save-btn').textContent = 'Salva modifiche';
   window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// Duplica: precompila il form con i dati dell'impegno ma SENZA editingId,
+// così il salvataggio crea un nuovo record e l'originale resta invariato.
+function duplicateItem(id){
+  const i = allImpegni[id];
+  if(!i) return;
+  editingId = null;
+  document.getElementById('f-data').value = i.data || '';
+  document.getElementById('f-ora').value = i.ora || '';
+  document.getElementById('f-ora-fine').value = i.oraFine || '';
+  document.getElementById('f-tipo').value = i.tipo || 'altro';
+  document.getElementById('f-classe').value = i.classe || '';
+  document.getElementById('f-referente').value = i.referente || '';
+  document.getElementById('f-titolo').value = i.titolo || '';
+  document.getElementById('f-descrizione').value = i.descrizione || '';
+  document.getElementById('save-btn').textContent = 'Aggiungi come nuovo impegno';
+  const msg = document.getElementById('form-msg');
+  msg.className = 'ok';
+  msg.textContent = 'Impegno duplicato: cambia la data (o altro) e salva.';
+  window.scrollTo({top:0, behavior:'smooth'});
+  const d = document.getElementById('f-data');
+  d.focus();
 }
 
 async function deleteItem(id){
@@ -336,6 +376,7 @@ async function deleteItem(id){
   }
 }
 window.editItem = editItem;
+window.duplicateItem = duplicateItem;
 window.deleteItem = deleteItem;
 
 function escapeHtml(s){
