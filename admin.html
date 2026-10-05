@@ -29,12 +29,16 @@
     font-family:var(--font-body);min-height:100vh;
   }
   header{
-    padding:24px 20px 14px;text-align:center;
+    padding:16px 20px;
     border-bottom:1px solid var(--line);background:var(--paper-2);
   }
-  header .logo{display:block;height:82px;width:auto;margin:0 auto 10px;border-radius:8px;}
-  header h1{font-family:var(--font-display);font-weight:700;font-size:1.35rem;margin:0 0 4px;}
-  header p{margin:0;color:var(--ink-soft);font-size:0.82rem;}
+  .header-inner{
+    max-width:640px;margin:0 auto;display:flex;align-items:center;gap:14px;text-align:left;
+  }
+  header .logo{display:block;height:58px;width:auto;flex-shrink:0;border-radius:8px;}
+  .header-text{min-width:0;}
+  header h1{font-family:var(--font-display);font-weight:700;font-size:1.15rem;margin:0 0 4px;}
+  header p{margin:0;color:var(--ink-soft);font-size:0.8rem;}
 
   /* LOGIN */
   #login-screen{
@@ -82,7 +86,12 @@
   }
   .impegno-item .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
   .impegno-item .titolo{font-family:var(--font-display);font-weight:600;font-size:1rem;}
-  .impegno-item .meta{font-size:0.78rem;color:var(--ink-soft);margin:4px 0 8px;}
+  .impegno-item .meta{font-size:0.78rem;color:var(--ink-soft);margin:4px 0 8px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+  .luogo-badge{
+    display:inline-flex;align-items:center;gap:3px;
+    background:var(--accent-soft);color:#3B2A0A;font-weight:700;
+    font-size:0.76rem;padding:3px 10px;border-radius:999px;
+  }
   .impegno-item .desc{font-size:0.85rem;margin-bottom:8px;}
   .item-actions{display:flex;gap:8px;}
   .item-actions button{
@@ -99,9 +108,13 @@
 <body>
 
 <header>
-  <img src="logo.jpg" alt="Logo Liceo Labriola" class="logo">
-  <h1>Agenda Liceo &mdash; Pannello di inserimento</h1>
-  <p>Accesso riservato al gruppo autorizzato</p>
+  <div class="header-inner">
+    <img src="logo.jpg" alt="Logo Liceo Labriola" class="logo">
+    <div class="header-text">
+      <h1>Agenda Liceo &mdash; Pannello di inserimento</h1>
+      <p>Accesso riservato al gruppo autorizzato</p>
+    </div>
+  </div>
 </header>
 
 <div id="login-screen">
@@ -118,20 +131,26 @@
     <input type="date" id="f-data">
     <div class="row2">
       <div>
-        <label for="f-ora">Ora (opzionale)</label>
+        <label for="f-ora">Ora inizio (opzionale)</label>
         <input type="time" id="f-ora">
       </div>
       <div>
-        <label for="f-tipo">Tipo</label>
-        <select id="f-tipo">
-          <option value="verifica">Verifica</option>
-          <option value="uscita">Uscita didattica</option>
-          <option value="assemblea">Assemblea</option>
-          <option value="convocazione">Convocazione</option>
-          <option value="altro">Altro</option>
-        </select>
+        <label for="f-ora-fine">Ora fine (opzionale)</label>
+        <input type="time" id="f-ora-fine">
       </div>
     </div>
+    <label for="f-tipo">Tipo</label>
+    <select id="f-tipo">
+      <option value="verifica">Verifica</option>
+      <option value="uscita">Uscita didattica</option>
+      <option value="assemblea">Assemblea</option>
+      <option value="convocazione">Convocazione</option>
+      <option value="progetto">Progetto</option>
+      <option value="sportello">Sportello didattico</option>
+      <option value="conferenza">Conferenza</option>
+      <option value="riunione">Riunioni</option>
+      <option value="altro">Altro</option>
+    </select>
     <label for="f-classe">Classe / spazio (opzionale)</label>
     <input type="text" id="f-classe" placeholder="es. 3B, Aula Magna...">
     <label for="f-titolo">Titolo</label>
@@ -170,6 +189,7 @@ const db = firebase.database();
 let currentPwHash = null; // hash della password inserita, riusato per validare ogni scrittura
 let editingId = null;
 let allImpegni = {};
+const TIPO_LABEL = {verifica:'Verifica', uscita:'Uscita didattica', assemblea:'Assemblea', convocazione:'Convocazione', progetto:'Progetto', sportello:'Sportello didattico', conferenza:'Conferenza', riunione:'Riunione', altro:'Altro'};
 
 async function sha256(text){
   const enc = new TextEncoder().encode(text);
@@ -215,6 +235,7 @@ document.getElementById('save-btn').onclick = async () => {
   const record = {
     data,
     ora: document.getElementById('f-ora').value || '',
+    oraFine: document.getElementById('f-ora-fine').value || '',
     tipo: document.getElementById('f-tipo').value,
     classe: document.getElementById('f-classe').value.trim(),
     titolo,
@@ -239,6 +260,7 @@ document.getElementById('save-btn').onclick = async () => {
 function resetForm(){
   editingId = null;
   document.getElementById('f-ora').value = '';
+  document.getElementById('f-ora-fine').value = '';
   document.getElementById('f-classe').value = '';
   document.getElementById('f-titolo').value = '';
   document.getElementById('f-descrizione').value = '';
@@ -267,20 +289,25 @@ function renderList(){
     return;
   }
 
-  container.innerHTML = entries.map(([id,i]) => `
+  container.innerHTML = entries.map(([id,i]) => {
+    const orario = i.ora ? (i.oraFine ? `${i.ora}&ndash;${i.oraFine}` : i.ora) : '';
+    return `
     <div class="impegno-item">
       <div class="top">
         <span class="titolo">${escapeHtml(i.titolo)}</span>
-        <span>${escapeHtml(i.data)}${i.ora ? ' &middot; ' + escapeHtml(i.ora) : ''}</span>
+        <span>${escapeHtml(i.data)}${orario ? ' &middot; ' + orario : ''}</span>
       </div>
-      <div class="meta">${escapeHtml(i.tipo||'altro')}${i.classe ? ' &middot; ' + escapeHtml(i.classe) : ''}</div>
+      <div class="meta">
+        <span>${TIPO_LABEL[i.tipo] || 'Altro'}</span>
+        ${i.classe ? `<span class="luogo-badge">&#128205; ${escapeHtml(i.classe)}</span>` : ''}
+      </div>
       ${i.descrizione ? `<div class="desc">${escapeHtml(i.descrizione)}</div>` : ''}
       <div class="item-actions">
         <button onclick="editItem('${id}')">Modifica</button>
         <button class="delete" onclick="deleteItem('${id}')">Elimina</button>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 function editItem(id){
@@ -289,6 +316,7 @@ function editItem(id){
   editingId = id;
   document.getElementById('f-data').value = i.data || '';
   document.getElementById('f-ora').value = i.ora || '';
+  document.getElementById('f-ora-fine').value = i.oraFine || '';
   document.getElementById('f-tipo').value = i.tipo || 'altro';
   document.getElementById('f-classe').value = i.classe || '';
   document.getElementById('f-titolo').value = i.titolo || '';
