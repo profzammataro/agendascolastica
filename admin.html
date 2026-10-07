@@ -157,6 +157,7 @@
       <option value="sportello">Sportello didattico</option>
       <option value="conferenza">Conferenza</option>
       <option value="riunione">Riunioni</option>
+      <option value="formazione">Formazione Docenti</option>
       <option value="altro">Altro</option>
     </select>
     <label for="f-classe">Classe / spazio (opzionale)</label>
@@ -199,7 +200,7 @@ const db = firebase.database();
 let currentPwHash = null; // hash della password inserita, riusato per validare ogni scrittura
 let editingId = null;
 let allImpegni = {};
-const TIPO_LABEL = {verifica:'Verifica', uscita:'Uscita didattica', assemblea:'Assemblea', convocazione:'Convocazione', progetto:'Progetto', sportello:'Sportello didattico', conferenza:'Conferenza', riunione:'Riunione', altro:'Altro'};
+const TIPO_LABEL = {verifica:'Verifica', uscita:'Uscita didattica', assemblea:'Assemblea', convocazione:'Convocazione', progetto:'Progetto', sportello:'Sportello didattico', conferenza:'Conferenza', riunione:'Riunione', formazione:'Formazione Docenti', altro:'Altro'};
 
 async function sha256(text){
   const enc = new TextEncoder().encode(text);
