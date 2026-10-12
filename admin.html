@@ -108,7 +108,7 @@
   .item-actions button.delete{color:var(--danger);border-color:var(--danger);}
   .item-actions button.duplicate{color:var(--accent);border-color:var(--accent);font-weight:600;}
 
-  .filter-bar{margin-bottom:14px;}
+  .filter-bar{margin-bottom:14px;display:flex;flex-direction:column;gap:8px;}
   .filter-bar input{max-width:100%;}
   .empty{color:var(--ink-soft);font-size:0.85rem;font-style:italic;text-align:center;padding:20px;}
 </style>
@@ -175,6 +175,7 @@
   <div class="card">
     <h2>Impegni inseriti</h2>
     <div class="filter-bar">
+      <input type="text" id="filter-search" placeholder="Cerca per titolo, referente, luogo...">
       <input type="date" id="filter-date" placeholder="Filtra per data">
     </div>
     <div id="items-list"></div>
@@ -289,12 +290,21 @@ function listenImpegni(){
 }
 
 document.getElementById('filter-date').onchange = renderList;
+document.getElementById('filter-search').oninput = renderList;
 
 function renderList(){
   const filterDate = document.getElementById('filter-date').value;
+  const q = document.getElementById('filter-search').value.trim().toLowerCase();
   const container = document.getElementById('items-list');
   let entries = Object.entries(allImpegni);
   if(filterDate) entries = entries.filter(([id,i]) => i.data === filterDate);
+  if(q){
+    entries = entries.filter(([id,i]) => {
+      const haystack = [i.titolo, i.referente, i.classe, i.descrizione, TIPO_LABEL[i.tipo]]
+        .filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
   entries.sort((a,b) => (a[1].data+((a[1].ora)||'')).localeCompare(b[1].data+((b[1].ora)||'')));
 
   if(entries.length === 0){
