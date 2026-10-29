@@ -336,22 +336,43 @@
     text-align:center;font-size:0.7rem;color:var(--ink-soft);
     text-transform:uppercase;padding-bottom:6px;font-weight:600;
   }
+  #view-month{margin:0 -8px;}
+  .cal-grid{gap:3px;}
   .cal-cell{
-    aspect-ratio:1;
-    border-radius:10px;
+    min-height:92px;
+    border-radius:8px;
     border:1px solid var(--line);
     background:var(--card);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+    gap:2px;
+    padding:3px 2px 3px;
     cursor:pointer;
     position:relative;
-    font-size:0.85rem;
+    font-size:0.72rem;
+    overflow:hidden;
   }
   .cal-cell.empty{visibility:hidden;}
-  .cal-cell.today{border-color:var(--accent);border-width:2px;}
-  .cal-cell .dots{
-    display:flex;gap:2px;margin-top:3px;
+  .cal-cell .dn{
+    align-self:center;
+    min-width:20px;height:20px;line-height:20px;
+    text-align:center;border-radius:10px;
+    font-weight:600;font-size:0.74rem;
   }
-  .cal-cell .dot{width:5px;height:5px;border-radius:50%;}
+  .cal-cell.today{border-color:var(--accent);}
+  .cal-cell.today .dn{background:var(--ink);color:var(--paper);}
+  .chip{
+    display:block;
+    font-size:0.6rem;
+    font-weight:600;
+    line-height:1.25;
+    padding:1px 3px;
+    border-radius:4px;
+    color:#fff;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chip.more{background:transparent;color:var(--ink-soft);text-align:center;padding:0;font-size:0.62rem;}
   .dot.assemblea-istituto{background:var(--tipo-assemblea-istituto);}
   .dot.assemblea-sindacale{background:var(--tipo-assemblea-sindacale);}
   .dot.attivita-fsl{background:var(--tipo-attivita-fsl);}
@@ -559,27 +580,29 @@ function renderMonth(){
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const todayIso = fmtISO(new Date());
 
-  // conta impegni per giorno, per tipo
+  // raggruppa impegni per giorno
   const byDay = {};
   Object.values(impegni).forEach(i => {
     if(!i.data) return;
     const d = new Date(i.data + 'T00:00:00');
     if(d.getFullYear() === year && d.getMonth() === month){
-      const day = d.getDate();
-      byDay[day] = byDay[day] || new Set();
-      byDay[day].add(i.tipo || 'altro');
+      (byDay[d.getDate()] = byDay[d.getDate()] || []).push(i);
     }
   });
 
+  const MAX_CHIPS = 3;
   let cells = '';
   for(let i=0; i<startOffset; i++) cells += '<div class="cal-cell empty"></div>';
   for(let day=1; day<=daysInMonth; day++){
     const iso = year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
     const isToday = iso === todayIso;
-    const dots = byDay[day] ? Array.from(byDay[day]).slice(0,4).map(t => `<span class="dot ${t}"></span>`).join('') : '';
+    const list = (byDay[day] || []).sort((a,b) => (a.ora||'').localeCompare(b.ora||''));
+    let chips = list.slice(0, MAX_CHIPS).map(i =>
+      `<span class="chip dot ${i.tipo || 'altro'}">${escapeHtml(i.titolo || '')}</span>`).join('');
+    if(list.length > MAX_CHIPS) chips += `<span class="chip more">+${list.length - MAX_CHIPS}</span>`;
     cells += `<div class="cal-cell ${isToday?'today':''}" data-day="${day}">
-      <span>${day}</span>
-      <span class="dots">${dots}</span>
+      <span class="dn">${day}</span>
+      ${chips}
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML = cells;
