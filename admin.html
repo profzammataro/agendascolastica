@@ -149,15 +149,25 @@
     </div>
     <label for="f-tipo">Tipo</label>
     <select id="f-tipo">
-      <option value="verifica">Verifica</option>
-      <option value="uscita">Uscita didattica</option>
-      <option value="assemblea">Assemblea</option>
-      <option value="convocazione">Convocazione</option>
-      <option value="progetto">Progetto</option>
-      <option value="sportello">Sportello didattico</option>
+      <option value="assemblea-istituto">Assemblea d'istituto</option>
+      <option value="assemblea-sindacale">Assemblea sindacale</option>
+      <option value="attivita-fsl">Attività FSL</option>
+      <option value="attivita-sportiva">Attività sportiva</option>
+      <option value="colloqui-docenti">Colloqui Docenti</option>
       <option value="conferenza">Conferenza</option>
-      <option value="riunione">Riunioni</option>
       <option value="formazione">Formazione Docenti</option>
+      <option value="glo">GLO</option>
+      <option value="mobilita-studentesca">Mobilità Studentesca</option>
+      <option value="mostra">Mostra</option>
+      <option value="premiazione">Premiazione</option>
+      <option value="progetto">Progetto</option>
+      <option value="riunione">Riunione</option>
+      <option value="spettacolo-teatrale">Spettacolo teatrale</option>
+      <option value="sportello">Sportello didattico</option>
+      <option value="uscita">Uscita didattica</option>
+      <option value="viaggio-istruzione">Viaggio d'istruzione</option>
+      <option value="visita-guidata">Visita guidata</option>
+      <option value="visiting">Visiting</option>
       <option value="altro">Altro</option>
     </select>
     <label for="f-classe">Classe / spazio (opzionale)</label>
@@ -201,7 +211,28 @@ const db = firebase.database();
 let currentPwHash = null; // hash della password inserita, riusato per validare ogni scrittura
 let editingId = null;
 let allImpegni = {};
-const TIPO_LABEL = {verifica:'Verifica', uscita:'Uscita didattica', assemblea:'Assemblea', convocazione:'Convocazione', progetto:'Progetto', sportello:'Sportello didattico', conferenza:'Conferenza', riunione:'Riunione', formazione:'Formazione Docenti', altro:'Altro'};
+const TIPO_LABEL = {
+  'assemblea-istituto':'Assemblea d\'istituto',
+  'assemblea-sindacale':'Assemblea sindacale',
+  'attivita-fsl':'Attività FSL',
+  'attivita-sportiva':'Attività sportiva',
+  'colloqui-docenti':'Colloqui Docenti',
+  'conferenza':'Conferenza',
+  'formazione':'Formazione Docenti',
+  'glo':'GLO',
+  'mobilita-studentesca':'Mobilità Studentesca',
+  'mostra':'Mostra',
+  'premiazione':'Premiazione',
+  'progetto':'Progetto',
+  'riunione':'Riunione',
+  'spettacolo-teatrale':'Spettacolo teatrale',
+  'sportello':'Sportello didattico',
+  'uscita':'Uscita didattica',
+  'viaggio-istruzione':'Viaggio d\'istruzione',
+  'visita-guidata':'Visita guidata',
+  'visiting':'Visiting',
+  'altro':'Altro'
+};
 
 async function sha256(text){
   const enc = new TextEncoder().encode(text);
